@@ -92,7 +92,7 @@ for stock in stocks:
         ten_actual = 0
         perc_gan = 0
 
-    gan_neta = round(ten_actual-ten_orig,2)
+    gan_neta = int(round(ten_actual-ten_orig))
 
     sum_ten_actual += ten_actual
     sum_ten_orig += ten_orig
@@ -101,7 +101,7 @@ for stock in stocks:
         percent_str = '+'+percent_str
 
     if days > 0:
-        perc_mensual = round(30*float(perc_gan)/days)
+        perc_mensual = round(30*float(perc_gan)/days, 2)
     else:
         perc_mensual = 0
 
@@ -110,6 +110,6 @@ for stock in stocks:
 headers = ["Valor", "Actual", u"Variación", 'Ten. Orig', 'Ten. Actual', 'Porc. Gan', 'Gan. Neta', 'Días de ten.', 'Porc. Mens.']
 print tabulate(table, headers, tablefmt="orgtbl")
 print '\n'
-print 'Total inicial: %s' % sum_ten_orig
-print 'Total actual: %s' % sum_ten_actual
-print 'Gan. Total Neta: %s \n' % sum_gan_neta
+print 'Total inicial: %s' % int(round(sum_ten_orig))
+print 'Total actual: %s' % int(round(sum_ten_actual))
+print 'Gan. Total Neta: %s \n' % int(round(sum_gan_neta))
