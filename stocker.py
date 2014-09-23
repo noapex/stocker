@@ -12,20 +12,7 @@ from time import mktime
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
-
-stocks = [{'val': 'ERAR',
-           'cant': 1,
-           'precio': 5,
-           'fecha': '16-09-2010'},
-          {'val': 'BMA',
-           'cant': 1,
-           'precio': 5,
-           'fecha': '16-09-2010'},
-          {'val': 'TS',
-           'cant': 1,
-           'precio': 32,
-           'fecha': '22-09-2010'},
-           'EDN', 'BRIO', 'APBR', 'YPFD', 'PAMP', 'COME', 'TECO2', 'GGAL', 'PATA']
+from config import stocks
 
 url_mapa = 'http://www.ravaonline.com/v2/empresas/mapa.php'
 user_agent = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'}
@@ -68,7 +55,7 @@ for stock in stocks:
     delayed = False
 
     if (html_mapa.find(attrs={'class': 'td'+val})):
-        percent_str = html_mapa.find(attrs={'class': 'td'+val}).find('span').string
+        percent_str = html_mapa.find(attrs={'class': 'td'+val}).find('span').string[:-1]
     elif (html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val)):
         percent_str = html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[5].string
         delayed = True
@@ -79,7 +66,6 @@ for stock in stocks:
     if delayed:
         val = val+' (*)'
     stock_close = float(stock_close.replace(',', '.'))
-    percent_str = percent_str[:-1]
     percent = float(percent_str.replace(',', '.'))
     actual = round(stock_close*(percent/100+1), 2)
 
