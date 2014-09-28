@@ -14,19 +14,31 @@ reload(sys)
 sys.setdefaultencoding("utf-8")
 from config import stocks
 
+user_agent = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                            'Chrome/36.0.1985.125 Safari/537.36'}
 url_mapa = 'http://www.ravaonline.com/v2/empresas/mapa.php'
-user_agent = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'}
-r_mapa = requests.get(url_mapa, headers=user_agent)
-html_mapa = BeautifulSoup(r_mapa.text)
+try:
+    r_mapa = requests.get(url_mapa, headers=user_agent)
+    html_mapa = BeautifulSoup(r_mapa.text)
+except requests.ConnectionError, e:
+    print 'No se pudo conectar con el servidor. Error: %s' % e
+    exit(1)
 
 url_lider = 'http://ravaonline.com/v2/precios/panel.php?m=LID'
-r_lider = requests.get(url_lider, headers=user_agent)
-html_lider = BeautifulSoup(r_lider.text)
+try:
+    r_lider = requests.get(url_lider, headers=user_agent)
+    html_lider = BeautifulSoup(r_lider.text)
+except requests.ConnectionError, e:
+    print 'No se pudo conectar con el servidor. Error: %s' % e
+    exit(1)
 
 url_gral = 'http://ravaonline.com/v2/precios/panel.php?m=GEN'
-r_gral = requests.get(url_gral, headers=user_agent)
-html_gral = BeautifulSoup(r_gral.text)
-
+try:
+    r_gral = requests.get(url_gral, headers=user_agent)
+    html_gral = BeautifulSoup(r_gral.text)
+except requests.ConnectionError, e:
+    print 'No se pudo conectar con el servidor. Error: %s' % e
+    exit(1)
 
 sum_ten_actual = 0
 sum_ten_orig = 0
@@ -47,55 +59,89 @@ for stock in stocks:
         val = stock
         ten_orig = 0
         days = 0
-    try:
+
+    #busco el valor de cierre
+    if html_lider.find(attrs={'class': "tablapanel"}) and html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val):
         stock_close = html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[7].string
-    except:
+    elif html_gral.find(attrs={'class': "tablapanel"}) and  html_gral.find(attrs={'class': "tablapanel"}).find('a', text=val):
         stock_close = html_gral.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[7].string
+    else:
+        stock_close = '--'
 
-    delayed = False
-
+    #busco el porcentaje actual en el mapa, panel lider o gral, en ese orden
     if (html_mapa.find(attrs={'class': 'td'+val})):
         percent_str = html_mapa.find(attrs={'class': 'td'+val}).find('span').string[:-1]
-    elif (html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val)):
+    elif html_lider.find(attrs={'class': "tablapanel"}) and html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val):
         percent_str = html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[5].string
-        delayed = True
-    else:
+        val += ' (*)'
+    elif html_gral.find(attrs={'class': "tablapanel"}) and html_gral.find(attrs={'class': "tablapanel"}).find('a', text=val):
         percent_str = html_gral.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[5].string
-        delayed = True
-
-    if delayed:
-        val = val+' (*)'
-    stock_close = float(stock_close.replace(',', '.'))
-    percent = float(percent_str.replace(',', '.'))
-    actual = round(stock_close*(percent/100+1), 2)
-
-    if type(stock) is dict:
-        ten_actual = actual*stock['cant']
-        perc_gan = round((actual/float(stock['precio'])-1)*100, 2)
-        if perc_gan > 0:
-            perc_gan = '+'+str(perc_gan)
+        val += ' (*)'
     else:
-        ten_actual = 0
-        perc_gan = 0
+        percent_str = '--'
 
-    gan_neta = int(round(ten_actual-ten_orig))
 
-    sum_ten_actual += ten_actual
-    sum_ten_orig += ten_orig
-    sum_gan_neta += gan_neta
-    if percent > 0 and percent_str[0] != '+':
-        percent_str = '+'+percent_str
 
-    if days > 0:
-        perc_mensual = round(30*float(perc_gan)/days, 2)
+    if (type(stock_close) is str and '--' in stock_close) or (type(percent_str) is str and '--' in percent_str):
+        actual = '--'
+        perc_mensual = '--'
+        perc_gan = '--'
+        gan_neta = '--'
+        ten_orig = '--'
+        ten_actual = '--'
+        table.append([val, actual, percent_str,  ten_orig, ten_actual, perc_gan, gan_neta, days, perc_mensual])
     else:
-        perc_mensual = 0
+        if ',' in stock_close:
+            stock_close = float(stock_close.replace(',', '.'))
 
-    table.append([val, '$'+str(actual), str(percent_str)+'%',  '$'+str(ten_orig), '$'+str(ten_actual), str(perc_gan)+'%', '$'+str(gan_neta), str(days), str(perc_mensual)+'%'])
+        if ',' in percent_str:
+            percent = float(percent_str.replace(',', '.'))
+        else:
+            percent = float(percent_str)
+
+        actual = round(stock_close*(percent/100+1), 2)
+
+        if type(stock) is dict:
+            ten_actual = actual*stock['cant']
+            perc_gan = (actual/float(stock['precio'])-1)*100
+            if perc_gan > 0:
+                perc_gan = '+'+str(perc_gan)
+        else:
+            ten_actual = 0
+            perc_gan = 0
+
+        gan_neta = float(ten_actual-ten_orig)
+
+        sum_ten_actual += ten_actual
+        sum_ten_orig += ten_orig
+        sum_gan_neta += gan_neta
+        if percent > 0 and percent_str[0] != '+':
+            percent_str = '+'+percent_str
+
+        if days > 0:
+            perc_mensual = 30*float(perc_gan)/days
+        else:
+            perc_mensual = 0
+
+        actual = round(actual, 2)
+        perc_mensual = round(perc_mensual, 2)
+        perc_gan = round(float(perc_gan), 2)
+        gan_neta = int(round(gan_neta))
+        ten_orig = int(round(ten_orig))
+        ten_actual = int(round(ten_actual))
+        table.append([val, '$'+str(actual), str(percent_str)+'%',  '$'+str(ten_orig), '$'+str(ten_actual), str(perc_gan)+'%', '$'+str(gan_neta), str(days), str(perc_mensual)+'%'])
 
 headers = ["Valor", "Actual", u"Variación", 'Ten. Orig', 'Ten. Actual', 'Porc. Gan', 'Gan. Neta', 'Días de ten.', 'Porc. Mens.']
-print tabulate(table, headers, tablefmt="orgtbl")
-print '\n'
-print 'Total inicial: %s' % int(round(sum_ten_orig))
-print 'Total actual: %s' % int(round(sum_ten_actual))
-print 'Gan. Total Neta: %s \n' % int(round(sum_gan_neta))
+
+
+perc_gan_total = round((sum_ten_actual/sum_ten_orig-1)*100, 2)
+sum_ten_orig = int(round(sum_ten_orig))
+sum_ten_actual = int(round(sum_ten_actual))
+sum_gan_neta = int(round(sum_gan_neta))
+
+print(tabulate(table, headers, tablefmt="orgtbl"))
+
+print('\nTotal inicial: $%s' % sum_ten_orig)
+print('Total actual: $%s' % sum_ten_actual)
+print('Gan. Total Neta: $%s' % sum_gan_neta)
+print('Gan. proporcional: %s%% \n' % perc_gan_total)
