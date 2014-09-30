@@ -139,9 +139,9 @@ for stock in stocks:
 headers = ["Valor", "Actual", u"Variación", 'Ten. Orig', 'Ten. Actual', 'Porc. Gan', 'Gan. Neta', 'Días de ten.', 'Porc. Mens.']
 
 perc_gan_total = round((sum_ten_actual/sum_ten_orig-1)*100, 2)
-perc_gan_total = '+'+str(perc_gan_total) if sum_ten_actual > sum_ten_orig else '-'+str(perc_gan_total)
+perc_gan_total = '+'+str(perc_gan_total) if sum_ten_actual > sum_ten_orig else str(perc_gan_total)
 perc_gan_diaria = round((float(sum_ten_actual)/float(sum_ten_ayer)-1)*100, 2)
-perc_gan_diaria = '+'+str(perc_gan_diaria) if sum_ten_actual > sum_ten_ayer else '-'+str(perc_gan_diaria)
+perc_gan_diaria = '+'+str(perc_gan_diaria) if sum_ten_actual > sum_ten_ayer else str(perc_gan_diaria)
 sum_ten_orig = int(round(sum_ten_orig))
 sum_ten_actual = int(round(sum_ten_actual))
 sum_ten_ayer = int(round(sum_ten_ayer))
