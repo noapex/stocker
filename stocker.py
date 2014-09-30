@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 import requests
 from tabulate import tabulate
 import time
-import time
 from datetime import datetime
 from time import mktime
 import sys
@@ -40,9 +39,11 @@ except requests.ConnectionError, e:
     print 'No se pudo conectar con el servidor. Error: %s' % e
     exit(1)
 
+now = datetime.now()
 sum_ten_actual = 0
 sum_ten_orig = 0
 sum_gan_neta = 0
+sum_ten_ayer = 0
 
 table = []
 
@@ -99,19 +100,23 @@ for stock in stocks:
         else:
             percent = float(percent_str)
 
-        actual = round(stock_close*(percent/100+1), 2)
+        actual = stock_close*(percent/100+1)
 
         if type(stock) is dict:
             ten_actual = actual*stock['cant']
+            ten_ayer = stock_close*stock['cant']
             perc_gan = (actual/float(stock['precio'])-1)*100
+
             if perc_gan > 0:
                 perc_gan = '+'+str(perc_gan)
         else:
             ten_actual = 0
+            ten_ayer = 0
             perc_gan = 0
 
         gan_neta = float(ten_actual-ten_orig)
 
+        sum_ten_ayer += ten_ayer
         sum_ten_actual += ten_actual
         sum_ten_orig += ten_orig
         sum_gan_neta += gan_neta
@@ -133,15 +138,21 @@ for stock in stocks:
 
 headers = ["Valor", "Actual", u"Variación", 'Ten. Orig', 'Ten. Actual', 'Porc. Gan', 'Gan. Neta', 'Días de ten.', 'Porc. Mens.']
 
-
 perc_gan_total = round((sum_ten_actual/sum_ten_orig-1)*100, 2)
+perc_gan_total = '+'+str(perc_gan_total) if sum_ten_actual > sum_ten_orig else '-'+str(perc_gan_total)
+perc_gan_diaria = round((float(sum_ten_actual)/float(sum_ten_ayer)-1)*100, 2)
+perc_gan_diaria = '+'+str(perc_gan_diaria) if sum_ten_actual > sum_ten_ayer else '-'+str(perc_gan_diaria)
 sum_ten_orig = int(round(sum_ten_orig))
 sum_ten_actual = int(round(sum_ten_actual))
+sum_ten_ayer = int(round(sum_ten_ayer))
 sum_gan_neta = int(round(sum_gan_neta))
+gan_diaria = sum_ten_actual-sum_ten_ayer
 
+print '\nValores a: %s\n' % now.strftime("%Y-%m-%d %H:%M")
 print(tabulate(table, headers, tablefmt="orgtbl"))
-
 print('\nTotal inicial: $%s' % sum_ten_orig)
 print('Total actual: $%s' % sum_ten_actual)
 print('Gan. Total Neta: $%s' % sum_gan_neta)
-print('Gan. proporcional: %s%% \n' % perc_gan_total)
+print('Gan. Diaria: $%s' % gan_diaria)
+print('Gan. prop diaria: %s%%' % perc_gan_diaria)
+print('Gan. prop total: %s%% \n' % perc_gan_total)
