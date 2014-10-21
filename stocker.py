@@ -83,7 +83,7 @@ for stock in stocks:
 
 
 
-    if (type(stock_close) is str and '--' in stock_close) or (type(percent_str) is str and '--' in percent_str):
+    if (type(stock_close) is str and '--' in stock_close) or (type(percent_str) is str and '--' in percent_str) or percent_str == '-':
         actual = '--'
         perc_mensual = '--'
         perc_gan = '--'
