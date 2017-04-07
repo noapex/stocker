@@ -15,29 +15,27 @@ from config import stocks
 
 user_agent = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
                             'Chrome/36.0.1985.125 Safari/537.36'}
-url_mapa = 'http://www.ravaonline.com/v2/empresas/mapa.php'
-try:
-    r_mapa = requests.get(url_mapa, headers=user_agent)
-    html_mapa = BeautifulSoup(r_mapa.text)
-except requests.ConnectionError, e:
-    print 'No se pudo conectar con el servidor. Error: %s' % e
-    exit(1)
 
-url_lider = 'http://ravaonline.com/v2/precios/panel.php?m=LID'
-try:
-    r_lider = requests.get(url_lider, headers=user_agent)
-    html_lider = BeautifulSoup(r_lider.text)
-except requests.ConnectionError, e:
-    print 'No se pudo conectar con el servidor. Error: %s' % e
-    exit(1)
+fuentes = {'mapa': {
+                'url': 'http://www.ravaonline.com/v2/empresas/mapa.php',
+                'data': None},
+           'lider': {
+                'url': 'http://ravaonline.com/v2/precios/panel.php?m=LID',
+                'data': None},
+           'gral': {
+               'url': 'http://ravaonline.com/v2/precios/panel.php?m=GEN',
+               'data': None}
+          }
 
-url_gral = 'http://ravaonline.com/v2/precios/panel.php?m=GEN'
-try:
-    r_gral = requests.get(url_gral, headers=user_agent)
-    html_gral = BeautifulSoup(r_gral.text)
-except requests.ConnectionError, e:
-    print 'No se pudo conectar con el servidor. Error: %s' % e
-    exit(1)
+
+for k, v in fuentes.items():
+    try:
+        r = requests.get(fuentes[k]['url'], headers=user_agent)
+        fuentes[k]['data'] = BeautifulSoup(r.text, "html.parser")
+    except requests.ConnectionError, e:
+        print 'No se pudo conectar con el servidor. Error: %s' % e
+        sys.exit(1)
+
 
 now = datetime.now()
 sum_ten_actual = 0
@@ -46,6 +44,11 @@ sum_gan_neta = 0
 sum_ten_ayer = 0
 
 table = []
+
+html_lider = fuentes['lider']['data']
+html_gral = fuentes['gral']['data']
+html_mapa = fuentes['mapa']['data']
+
 
 for stock in stocks:
     if type(stock) is dict:
@@ -70,7 +73,7 @@ for stock in stocks:
         stock_close = '--'
 
     #busco el porcentaje actual en el mapa, panel lider o gral, en ese orden
-    if (html_mapa.find(attrs={'class': 'td'+val})):
+    if html_mapa.find(attrs={'class': 'td'+val}) and hasattr(html_mapa.find(attrs={'class': 'td'+val}).find('span'), 'string'):
         percent_str = html_mapa.find(attrs={'class': 'td'+val}).find('span').string[:-1]
     elif html_lider.find(attrs={'class': "tablapanel"}) and html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val):
         percent_str = html_lider.find(attrs={'class': "tablapanel"}).find('a', text=val).parent.parent.contents[5].string
